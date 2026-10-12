@@ -1,27 +1,30 @@
 // build.rs
+//
+// The pre-generated bindings (SDK 25.6) are used unless the `regen` feature is on AND AESDK_ROOT is set. `bindgen`
+// (and libclang) are only needed for regeneration, so they are an optional build dependency: a consumer of the
+// built-in bindings compiles none of them and its Cargo.lock does not list them.
+#[cfg(feature = "regen")]
 extern crate bindgen;
 
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::env;
+#[cfg(feature = "regen")]
+use std::path::{Path, PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=wrapper.hpp");
 
     println!("cargo::rustc-check-cfg=cfg(builtin_bindings)");
-    if !env::var("AESDK_ROOT").is_ok_and(|x| !x.is_empty()) {
-        println!("cargo:rustc-cfg=builtin_bindings");
-        return;
+    let sdk = env::var("AESDK_ROOT").ok().filter(|x| !x.is_empty());
+    match sdk {
+        #[cfg(feature = "regen")]
+        Some(root) => regen(&root),
+        _ => println!("cargo:rustc-cfg=builtin_bindings"),
     }
+}
 
-    let ae_sdk_path = &env::var("AESDK_ROOT").ok().filter(|x| !x.is_empty()).expect(
-        "AESDK_ROOT environment variable not set – cannot find AfterEffects SDK.\n\
-        Please set AESDK_ROOT to the root folder of your AfterEffects SDK\n\
-        installation (this folder contains the Examples folder & the SDK\n\
-        Guide PDF).",
-    );
-
+/// Regenerates the bindings from the SDK headers under `ae_sdk_path` into `$OUT_DIR/bindings.rs`.
+#[cfg(feature = "regen")]
+fn regen(ae_sdk_path: &str) {
     if !Path::new(ae_sdk_path).exists() {
         panic!("AESDK_ROOT environment variable points to non-existent path: {ae_sdk_path}");
     }

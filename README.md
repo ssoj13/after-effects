@@ -109,7 +109,8 @@ If you want to regenerate the SDK bindings:
    export AESDK_ROOT=/path/to/AfterEffectsSDK
    export PRSDK_ROOT=/path/to/PremiereSDK
    ```
-3. Run `just build`.
+3. Enable the `after-effects-sys/regen` feature (it pulls `bindgen`, which needs libclang; without it `AESDK_ROOT` is
+   ignored and the built-in bindings are used) and run `just build`.
 
 ⚠️ Note: Adobe’s public SDK may be outdated for 3D Artisan API. This mainly affects custom 3D renderer plugins. 2D plugins are unaffected.
 
